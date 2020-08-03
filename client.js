@@ -9,11 +9,11 @@ class Request {
    */
   constructor(options) {
     this.method = options.method || "GET";
-    (this.host = options.host),
-      (this.port = options.port || 80),
-      (this.path = options.path || "/"),
-      (this.body = options.body || {}),
-      (this.headers = options.headers || {});
+    this.host = options.host;
+    this.port = options.port || 80;
+    this.path = options.path || "/";
+    this.body = options.body || {};
+    this.headers = options.headers || {};
     if (!this.headers["Content-Type"]) {
       this.headers["Content-Type"] = "application/x-www-form-urlencoded";
     }
@@ -27,17 +27,8 @@ class Request {
         .join("&");
 
     this.headers["Content-Length"] = this.bodyText.length;
-    // console.log(this.body)
   }
   toString() {
-    /**
-         * `POST / HTTP/1.1\r
-            Content-Type: application/x-www-form-urlencoded\r
-            Content-Length: 8\r
-            \r
-            name=jyy`)
-            注意这里不能有缩进对齐，会导致空格混进字符串
-         */
 
     return `${this.method} ${this.path} HTTP/1.1\r
 ${Object.keys(this.headers)
@@ -60,18 +51,16 @@ ${this.bodyText}
             port: this.port,
           },
           () => {
-            // console.log(this.toString())
             connection.write(this.toString());
           }
         );
       }
 
       connection.on("data", (data) => {
-        //console.log(data.toString());
+        console.log(data.toString());
         parser.receive(data.toString());
         if (parser.isFinished) {
           resolve(parser.response);
-
           connection.end();
         }
       });
@@ -130,19 +119,14 @@ class ResponseParser {
       if (char === "\r") this.current = this.WATTING_STATUS_LINE_END;
       else this.statusLine += char;
     } else if (this.current === this.WATTING_STATUS_LINE_END) {
-      // console.log(string.charAt(i))
-      // this.statusLine.push(char);
       if (char === "\n") {
         this.current = this.WATTING_HEADER_NAME;
       }
     } else if (this.current === this.WATTING_HEADER_NAME) {
-      // console.log(char);
       if (char === ":") {
         this.current = this.WATTING_HEADER_SPACE;
-        // console.log("///////");
       } else if (char === "\r") {
         this.current = this.WATTING_HEADER_BLOCK_END;
-        // console.log("///////");
         if (this.headers["Transfer-Encoding"] === "chunked") {
           this.bodyParser = new TrunkedBodyParser();
         }
@@ -152,9 +136,10 @@ class ResponseParser {
     } else if (this.current === this.WATTING_HEADER_SPACE) {
       if (char === " ") {
         this.current = this.WATTING_HEADER_VALUE;
-      } else {
-        this.statusLine += char;
       }
+      //  else {
+      //   this.statusLine += char;
+      // }
     } else if (this.current === this.WATTING_HEADER_VALUE) {
       if (char === "\r") {
         this.current = this.WATTING_HEADER_LINE_END;
@@ -173,9 +158,7 @@ class ResponseParser {
         this.current = this.WATTING_BODY;
       }
     } else if (this.current === this.WATTING_BODY) {
-      console.log(char)
       this.bodyParser.receiveChar(char);
-      // if(this.current === )
     }
   }
 }
@@ -194,10 +177,8 @@ class TrunkedBodyParser {
     this.current = this.WATTING_LENGTH;
   }
   receiveChar(char) {
-    // console.log(JSON.stringify(char))//可以打印出\n \r字符
     if (this.current === this.WATTING_LENGTH) {
       if (char === "\r") {
-        // console.log(this.length)
         if (this.length === 0) {
           this.isFinished = true;
         }
@@ -220,7 +201,6 @@ class TrunkedBodyParser {
       if (this.length === 0) {
         this.current = this.WATTING_NEW_LINE;
       }
-      //console.log('REANING_TRUNK',this.length)
     } else if (this.current === this.WATTING_NEW_LINE) {
       if (char === "\r") {
         this.current = this.WATTING_NEW_LINE_END;
@@ -228,14 +208,13 @@ class TrunkedBodyParser {
     } else if (this.current === this.WATTING_NEW_LINE_END) {
       if (char === "\n") {
         this.current = this.WATTING_LENGTH;
-        //console.log('WATTING_LENGTH')
       }
     }
   }
 }
 
 // 第二步
-void (async function () {
+void async function () {
   let request = new Request({
     method: "POST",
     host: "127.0.0.1",
@@ -245,13 +224,11 @@ void (async function () {
       ["x-foo2"]: "customed",
     },
     body: {
-      name: "jyy",
+      name: "winter",
     },
   });
   let response = await request.send();
+
+  let dom = parser.parseHTML(response.body);
   console.log(response);
-  // console.log(response.body);
-//   let dom = parser.parseHTML(response.body);
-//   console.log(JSON.stringify(dom, null, "    "));
-//   console.log("");
-})();
+}();
