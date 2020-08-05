@@ -1,9 +1,57 @@
 const EOF = Symbol('EOF')
+
 let currentToken = null;
 let currentAttribute = null
 
+let stack = [{
+  type:'document',
+  children:[]
+}]
+
+let currentTextNode = null
+
 function emit(token){
   console.log(token)
+  if(token.type === 'text'){
+    return
+  }
+  let top = stack[stack.length - 1]
+
+  if(token === 'startTag'){
+    let element = {
+      type: 'element',
+      children:[],
+      attributes:[]
+    }
+
+    element.tagName = token.tagName
+
+    for(let p in token){
+      if(p !== 'type' && p!== 'tagName'){
+        element.attributes.push({
+          name:p,
+          value:token[p]
+        })
+      }
+    }
+
+    top.children.push(element)
+    element.parent = top
+
+    if(!token.isSelfClosing){
+      stack.push(element)
+    }
+
+    currentTextNode = null
+  }else if(token.type === 'endTag'){
+    if(top.tagName !== token.tagName){
+      throw Error('Tag start end does not match')
+    } else {
+      stack.pop()
+    }
+  }
+  currentTextNode = null
+
 }
 
 // 初始状态
@@ -69,7 +117,7 @@ function tagName(c){
     return tagName
   }
 }
-// 标签属性
+// 切换至标签属性逻辑
 function beforeAttributeName(c){
   if (c.match(/^[\t\n\f ]$/)) {
     return beforeAttributeName;
@@ -80,6 +128,7 @@ function beforeAttributeName(c){
   } else if(c === '='){
     // return beforeAttributeName;
   } else {
+    // 创建标签名
     currentAttribute = {
       name: "",
       value: "",
@@ -88,6 +137,7 @@ function beforeAttributeName(c){
   }
 }
 
+// 进入属性value状态
 function beforeAttributeValue(c){
   if(c.match(/^[\t\n\f ]$/) || c === '/' || c === '>' || c === EOF){
     return beforeAttributeValue
@@ -116,7 +166,7 @@ function afterQuotedAttributeValue(c){
     return doubleQuotedAttributeValue;
   }
 }
-
+// 双引号号属性
 function doubleQuotedAttributeValue(c){
   if( c === '\"'){
     currentToken[currentAttribute.name] = currentAttribute.value
@@ -130,7 +180,7 @@ function doubleQuotedAttributeValue(c){
     return doubleQuotedAttributeValue
   }
 }
-
+// 单引号属性
 function singleQuotedAttributeValue(c) {
   if (c === '\'') {
     currentToken[currentAttribute.name] = currentAttribute.value;
@@ -139,7 +189,7 @@ function singleQuotedAttributeValue(c) {
   } else if (c === EOF) {
   } else {
     currentAttribute.value += c;
-    return doubleQuotedAttributeValue;
+    return singleQuotedAttributeValue;
   }
 }
 

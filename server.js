@@ -12,7 +12,7 @@ http.createServer((request,response) => {
         response.writeHead(200,{'Content-Type':'text/html'})
         response.end(`<html lang="en">
 <head>
-    <meta charset="UTF-8"/>
+    <meta charset='UTF-8'/>
     <title>Title</title>
     <style>
         #container{
@@ -45,6 +45,6 @@ http.createServer((request,response) => {
 </html>
 `);
     })
-}).listen(8088)
+}).listen(8089)
 
 console.log('server star')
