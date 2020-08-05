@@ -12,45 +12,52 @@ let currentTextNode = null
 
 function emit(token){
   console.log(token)
-  if(token.type === 'text'){
-    return
-  }
   let top = stack[stack.length - 1]
 
-  if(token === 'startTag'){
+  if (token.type === "startTag") {
     let element = {
-      type: 'element',
-      children:[],
-      attributes:[]
-    }
+      type: "element",
+      children: [],
+      attributes: [],
+    };
 
-    element.tagName = token.tagName
+    element.tagName = token.tagName;
 
-    for(let p in token){
-      if(p !== 'type' && p!== 'tagName'){
+    for (let p in token) {
+      if (p !== "type" && p !== "tagName") {
         element.attributes.push({
-          name:p,
-          value:token[p]
-        })
+          name: p,
+          value: token[p],
+        });
       }
     }
 
-    top.children.push(element)
-    element.parent = top
+    top.children.push(element);
+    element.parent = top;
 
-    if(!token.isSelfClosing){
-      stack.push(element)
+    if (!token.isSelfClosing) {
+      stack.push(element);
     }
 
-    currentTextNode = null
-  }else if(token.type === 'endTag'){
-    if(top.tagName !== token.tagName){
-      throw Error('Tag start end does not match')
+    currentTextNode = null;
+  } else if (token.type === "endTag") {
+    if (top.tagName !== token.tagName) {
+      throw Error("Tag start end does not match");
     } else {
-      stack.pop()
+      stack.pop();
     }
+    currentTextNode = null;
+  } else if(token.type === 'text'){
+    if(currentTextNode === null){
+      currentTextNode = {
+        type:'text',
+        content:''
+      }
+      top.children.push(currentToken)
+    }
+    currentTextNode.content += token.content
   }
-  currentTextNode = null
+ 
 
 }
 
@@ -66,7 +73,7 @@ function data(c){
   } else {
     emit({
       type:'text',
-      content:c
+      content:c 
     })
     return data;
   }
@@ -250,5 +257,5 @@ module.exports.parseHTML = function parseHTML(html) {
     state = state(c)
   }
   state = state(EOF)
-  console.log(html);
+  console.log(stack);
 };
